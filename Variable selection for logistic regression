@@ -1,0 +1,170 @@
+# notes from Introduction to Predictive Analytics in Python from DataCamp - part 2
+
+# Import the linear_model and roc_auc_score modules
+from sklearn import linear_model
+from sklearn.metrics import roc_auc_score
+
+# Consider two sets of variables
+variables_1 = ["mean_gift", "income_low"]
+variables_2 = ["mean_gift", "income_low", "gender_F", "country_India", "age"]
+
+# Make predictions using the first set of variables and assign the AUC to auc_1
+X_1 = basetable[variables_1]
+Y = basetable[["target"]]
+logreg = linear_model.LogisticRegression()
+logreg.fit(X_1, Y)
+predictions_1 = logreg.predict_proba(X_1)[:, 1]
+auc_1 = roc_auc_score(Y, predictions_1)
+
+# Make predictions using the second set of variables and assign the AUC to auc_2
+X_2 = basetable[variables_2]
+logreg.fit(X_2, Y)
+predictions_2 = logreg.predict_proba(X_2)[:, 1]
+auc_2 = roc_auc_score(Y, predictions_2)
+
+# Print auc_1 and auc_2
+print(round(auc_1, 2))
+print(round(auc_2, 2))
+
+
+# function to calculate AUC
+
+def auc(variables, target, basetable):
+    X = basetable[variables]
+    Y = basetable[target]
+    logreg = linear_model.LogisticRegression()
+    logreg.fit(X, Y)
+    predictions = logreg.predict_proba(X)[:, 1]
+    auc = roc_auc_score(Y, predictions)
+    return (auc)
+
+
+def next_best(current_variables, candidate_variables, target, basetable):
+    best_auc = -1
+    best_variable = None
+
+    # Calculate the auc score of adding v to the current variables
+    for v in candidate_variables:
+        auc_v = auc(current_variables + [v], target, basetable)
+
+        # Update best_auc and best_variable adding v led to a better auc score
+        if auc_v >= best_auc:
+            best_auc = auc_v
+            best_variable = v
+
+    return best_variable
+
+
+# Try next_best to get the best predicitve variable among gender_F and age
+next_variable = next_best(["max_gift", "mean_gift", "min_gift"], ["gender_F", "age"], ["target"], basetable)
+print(next_variable)
+
+candidate_variables = list(basetable.columns.values)
+candidate_variables.remove("target")
+current_variables = []
+target = ["target"]
+max_number_variables = 10
+number_iterations = min(max_number_variables, len(candidate_variables))
+for i in range(0, number_iterations):
+    next_variable = next_best(current_variables, candidate_variables, target, basetable)
+    current_variables = current_variables + [next_variable]
+    candidate_variables.remove(next_variable)
+print(current_variables)
+
+# Calculate the AUC of the model using min_gift only
+auc_min_gift = auc(["min_gift"], ["target"], basetable)
+print(round(auc_min_gift, 2))
+
+# Calculate the AUC of the model using income_high only
+auc_income_high = auc(["income_high"], ["target"], basetable)
+print(round(auc_income_high, 2))
+
+# Calculate the correlation between min_gift and mean_gift
+import numpy
+
+correlation = numpy.corrcoef(basetable["min_gift"], basetable["mean_gift"])[0, 1]
+print(round(correlation, 2))
+
+#  Partitioning
+
+from sklearn.cross_validation import train_test_split
+
+# Create dataframes with variables and target
+X = basetable.drop('target', 1)
+Y = basetable["target"]
+
+# Carry out 50-50 partititioning with stratification
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.50, stratify=Y)
+
+# Create the final train and test basetables
+train = pd.concat([X_train, Y_train], axis=1)
+test = pd.concat([X_test, Y_test], axis=1)
+
+# Check whether train and test have same percentage targets
+print(round(sum(train["target"]) / len(train), 2))
+print(round(sum(test["target"]) / len(test), 2))
+
+from sklearn import linear_model
+from sklearn.metrics import roc_auc_score
+
+
+def auc_train_test(variables, target, train, test):
+    X_train = train[variables]
+    X_test = test[variables]
+    Y_train = train[target]
+    Y_test = test[target]
+    logreg = linear_model.LogisticRegression()
+
+    # Fit the model on train data
+    logreg.fit(X_train, Y_train)
+
+    # Calculate the predictions both on train and test data
+    predictions_train = logreg.predict_proba(X_train)[:, 1]
+    predictions_test = logreg.predict_proba(X_test)[:, 1]
+
+    # Calculate the AUC both on train and test data
+    auc_train = roc_auc_score(Y_train, predictions_train)
+    auc_test = roc_auc_score(Y_test, predictions_test)
+    return (auc_train, auc_test)
+
+
+# Apply the auc_train_test function
+auc_train, auc_test = auc_train_test(["age", "gender_F"], ["target"], train, test)
+print(round(auc_train, 2))
+print(round(auc_test, 2))
+
+# Variable order resulting from the forward stepwise variable selection procedure
+variables = ['max_gift', 'time_since_last_gift', 'number_gift', 'mean_gift', 'income_high', 'age', 'gender_F',
+             'time_since_first_gift', 'income_low', 'country_UK', 'country_India', 'country_USA', 'min_gift']
+
+# Keep track of train and test AUC values
+auc_values_train = []
+auc_values_test = []
+
+# Add variables one by one
+variables_evaluate = []
+
+# Iterate over the variables in variables
+for v in variables:
+    # Add the variable
+    variables_evaluate.append(v)
+
+    # Calculate the train and test AUC of this set of variables
+    auc_train, auc_test = auc_train_test(variables_evaluate, ["target"], train, test)
+
+    # Append the values to the lists
+    auc_values_train.append(auc_train)
+    auc_values_test.append(auc_test)
+
+# Make plot of the AUC values
+import matplotlib.pyplot as plt
+import numpy as np
+
+x = np.array(range(0, len(auc_values_train)))
+y_train = np.array(auc_values_train)
+y_test = np.array(auc_values_test)
+plt.xticks(x, variables, rotation=90)
+plt.plot(x, y_train)
+plt.plot(x, y_test)
+plt.ylim((0.7, 0.8))
+plt.show()

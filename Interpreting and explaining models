@@ -1,0 +1,143 @@
+# notes from Introduction to Predictive Analytics in Python from DataCamp - part 4
+
+# Predictor inside graph
+
+# Inspect the predictor insight graph table of Country
+print(pig_table)
+
+# Print the number of UK donors
+print(pig_table["Size"][pig_table["Country"] == "UK"])
+
+# Check the target incidence of USA and India donors
+print(pig_table["Incidence"][pig_table["Country"] == "USA"])
+print(pig_table["Incidence"][pig_table["Country"] == "India"])
+
+# Discretize the variable time_since_last_donation in 10 bins
+basetable["bins_recency"] = pd.qcut(basetable["time_since_last_donation"], 10)
+
+# Print the group sizes of the discretized variable
+print(basetable.groupby("bins_recency").size())
+
+print(basetable.columns)
+
+# Get all the variable names except "target"
+variables = list(basetable.columns)
+variables.remove("target")
+
+# Loop through all the variables and discretize in 10 bins if there are more than 5 different values
+for variable in variables:
+    if len(basetable.groupby(variable)) > 5:
+        new_variable = "disc_" + variable
+        basetable[new_variable] = pd.qcut(basetable[variable], 10)
+
+# Print the columns in the new basetable
+print(basetable.columns)
+
+# Discretize the variable
+basetable["disc_number_gift"] = pd.cut(basetable["number_gift"], [0, 5, 10, 20])
+
+# Count the number of observations per group
+print(basetable.groupby("disc_number_gift").size())
+
+# Select the income and target columns
+basetable_income = basetable[["income", "target"]]
+
+# Group basetable_income by income
+groups = basetable_income.groupby("income")
+
+# Calculate the target incidence and print the result
+incidence = groups["target"].agg({"Incidence": np.mean}).reset_index()
+print(incidence)
+
+
+# Function that creates predictor insight graph table
+def create_pig_table(basetable, target, variable):
+    # Create groups for each variable
+    groups = basetable[[target, variable]].groupby(variable)
+
+    # Calculate size and target incidence for each group
+    pig_table = groups[target].agg({'Incidence': np.mean, 'Size': np.size}).reset_index()
+
+    # Return the predictor insight graph table
+    return pig_table
+
+
+# Calculate the predictor insight graph table for the variable gender
+pig_table_gender = create_pig_table(basetable, "target", "gender")
+
+# Print the result
+print(pig_table_gender)
+
+# Variables you want to make predictor insight graph tables for
+variables = ["income", "gender", "disc_mean_gift", "disc_time_since_last_gift"]
+
+# Create an empty dictionary
+pig_tables = {}
+
+# Loop through the variables
+for variable in variables:
+    # Create a predictor insight graph table
+    pig_table = create_pig_table(basetable, "target", variable)
+
+    # Add the table to the dictionary
+    pig_tables[variable] = pig_table
+
+# Print the predictor insight graph table of the variable "disc_time_since_last_gift"
+print(pig_tables["disc_time_since_last_gift"])
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+# The function to plot a predictor insight graph.
+
+def plot_incidence(pig_table, variable):
+    # Plot the incidence line
+    pig_table["Incidence"].plot()
+
+    # Formatting the predictor insight graph
+    plt.xticks(np.arange(len(pig_table)), pig_table[variable])
+    plt.xlim([-0.5, len(pig_table) - 0.5])
+    plt.ylim([0, max(pig_table["Incidence"] * 2)])
+    plt.ylabel("Incidence", rotation=0, rotation_mode="anchor", ha="right")
+    plt.xlabel(variable)
+
+    # Show the graph
+    plt.show()
+
+
+plot_incidence(pig_table, "country")
+
+
+def plot_pig(pig_table, variable):
+    # Plot formatting
+    plt.ylabel("Size", rotation=0, rotation_mode="anchor", ha="right")
+
+    # Plot the bars with sizes
+    pig_table["Size"].plot(kind="bar", width=0.5, color="lightgray", edgecolor="none")
+
+    # Plot the incidence line on secondary axis
+    pig_table["Incidence"].plot(secondary_y=True)
+
+    # Plot formatting
+    plt.xticks(np.arange(len(pig_table)), pig_table[variable])
+    plt.xlim([-0.5, len(pig_table) - 0.5])
+    plt.ylabel("Incidence", rotation=0, rotation_mode="anchor", ha="left")
+
+    # Show the graph
+    plt.show()
+
+
+# Apply the function for the variable "country"
+plot_pig(pig_table, "country")
+
+# Variables you want to make predictor insight graph tables for
+variables = ["income", "gender", "disc_mean_gift", "disc_time_since_last_gift"]
+
+# Loop through the variables
+for variable in variables:
+    # Create the predictor insight graph table
+    pig_table = create_pig_table(basetable, "target", variable)
+
+    # Plot the predictor insight graph
+    plot_pig(pig_table, variable)

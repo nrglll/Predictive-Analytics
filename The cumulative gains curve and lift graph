@@ -1,0 +1,77 @@
+# notes from Introduction to Predictive Analytics in Python from DataCamp - part 3
+
+# %% Cumulative Gains curve
+
+import matplotlib.pyplot as plt
+
+# Import the scikitplot module
+import scikitplot as skplt
+
+# Plot the cumulative gains graph
+skplt.metrics.plot_cumulative_gain(targets_test, predictions_test)
+plt.show()
+
+# Generate random predictions
+random_predictions = [random.uniform(0, 1) for i in range(len(targets_test))]
+random_predictions = [(r, 1 - r) for r in random_predictions]
+
+# Plot the cumulative gains graph
+skplt.metrics.plot_cumulative_gain(targets_test, random_predictions)
+plt.show()
+
+# %% Plot the lift curve
+skplt.metrics.plot_lift_curve(targets_test, predictions_test)
+plt.show()
+
+# Generate perfect predictions
+perfect_predictions = [(1 - target, target) for target in targets_test["target"]]
+
+# Plot the lift curve
+skplt.metrics.plot_lift_curve(targets_test, perfect_predictions)
+plt.show()
+
+# Business case using lift curve
+
+skplt.metrics.plot_lift_curve(targets_test, predictions_test)
+plt.show()
+
+# Read the lift at 40% (round it up to the upper tenth)
+perc_selected = 0.4
+lift = 1.5
+
+# Information about the campaign
+population_size = 100000
+target_incidence = 0.01
+campaign_cost = 1
+campaign_reward = 100
+
+
+# Profit in function of the percentage of targets and percentage of population reached
+def profit(perc_targets, perc_selected, population_size, campaign_cost, campaign_reward):
+    cost = perc_selected * population_size * campaign_cost
+    reward = perc_targets * perc_selected * population_size * campaign_reward
+    return (reward - cost)
+
+
+# Profit if all donors are targeted
+profit_all = profit(target_incidence, 1, population_size, campaign_cost, campaign_reward)
+print(profit_all)
+profit_40 = profit(lift * target_incidence, 0.4, population_size, campaign_cost, campaign_reward)
+print(profit_40)
+
+# Plot the cumulative gains
+skplt.metrics.plot_cumulative_gain(targets_test, predictions_test)
+plt.show()
+
+# Information about the campaign
+population_size = 10000
+target_incidence = 0.10
+
+# Number of targets you want to reach
+number_targets_toreach = 600
+perc_targets_toreach = number_targets_toreach / (target_incidence * population_size)
+cumulative_gains = 0.4
+
+# Number of donors to reach
+number_donors_toreach = cumulative_gains * population_size
+print(number_donors_toreach)

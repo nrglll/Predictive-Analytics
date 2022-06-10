@@ -1,0 +1,43 @@
+# notes from Introduction to Predictive Analytics in Python from DataCamp - part 1
+
+print(basetable.head())
+# Assign the number of rows in the basetable to the variable 'population_size'.
+population_size  = len(basetable)
+# Print the population size.
+print(population_size)
+# Assign the number of targets to the variable 'targets_count'.
+targets_count = sum(basetable["target"])
+# Print the number of targets.
+print(targets_count)
+# Print the incidence, i.e. the number of targets divided by the population size.
+print(targets_count/population_size)
+
+# Count and print the number of females.
+print(sum(basetable["gender"]== 'F'))
+# Count and print the number of males.
+print(sum(basetable["gender"]== 'M'))
+
+from sklearn import linear_model
+# Create a dataframe X that only contains the candidate predictors age, gender_F and time_since_last_gift.
+X = basetable[["age", "gender_F", "time_since_last_gift"]]
+# Create a dataframe Y that contains the target.
+Y = basetable[["target"]]
+# Create a logistic regression model logreg and fit it to the data.
+logreg = linear_model.LogisticRegression()
+logreg.fit(X, Y)
+
+coef = logreg.coef_
+# Assign the intercept to the variable intercept
+intercept = logreg.intercept_
+# Print coef and intercept
+print(coef)
+print(intercept)
+
+new_data = current_data[["age","gender_F","time_since_last_gift"]]
+# Make a prediction for each observation in new_data and assign it to predictions
+predictions = logreg.predict_proba(new_data)
+
+predictions_sorted = predictions.sort(["probability"])
+
+# Print the row of predictions_sorted that has the donor that is most likely to donate
+print(predictions_sorted.tail(1))
